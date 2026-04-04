@@ -439,7 +439,7 @@ function getCurrentStatus(plan, now) {
 
 const DEFAULT_PLAN = { wakeTime: "06:30", bedTime: "22:30" };
 const DEFAULT_PREFS = { theme: "dark", fontSize: "medium" };
-const FONT_SCALES = { small: 0.85, medium: 1, large: 1.2 };
+const FONT_SCALES = { small: 0.85, medium: 1, large: 1.35 };
 const S = { background: "var(--bg)", minHeight: "100vh", color: "var(--text)", fontFamily: "Georgia, serif", paddingBottom: 72 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -595,14 +595,14 @@ export default function App() {
         >
           <div style={{ background: "var(--bg-surface)", width: "100%", borderRadius: "20px 20px 0 0", padding: "24px 20px 36px", boxSizing: "border-box" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>
+              <h3 style={{ margin: 0, fontSize: "1.125rem" }}>
                 {EV[modal.type]?.icon} {EV[modal.type]?.label}
               </h3>
-              <button onClick={() => setModal(null)} style={{ background: "none", border: "none", color: "var(--text-subtle)", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>
+              <button onClick={() => setModal(null)} style={{ background: "none", border: "none", color: "var(--text-subtle)", fontSize: "1.5rem", cursor: "pointer", lineHeight: 1 }}>
                 ×
               </button>
             </div>
-            <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>TIME</label>
+            <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>TIME</label>
             <input
               type="time"
               value={modal.time}
@@ -614,7 +614,7 @@ export default function App() {
                 borderRadius: 10,
                 padding: "12px 14px",
                 color: "var(--text)",
-                fontSize: 20,
+                fontSize: "1.25rem",
                 fontFamily: "Georgia, serif",
                 marginBottom: 16,
                 boxSizing: "border-box",
@@ -622,7 +622,7 @@ export default function App() {
             />
             {modal.type === "exercise" && (
               <>
-                <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>INTENSITY</label>
+                <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>INTENSITY</label>
                 <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
                   {["moderate", "vigorous"].map((v) => (
                     <button
@@ -637,7 +637,7 @@ export default function App() {
                         color: modal.extra.intensity === v ? "#06B6D4" : "var(--text-secondary)",
                         cursor: "pointer",
                         fontFamily: "Georgia, serif",
-                        fontSize: 14,
+                        fontSize: "0.875rem",
                         textTransform: "capitalize",
                       }}
                     >
@@ -645,7 +645,7 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>DURATION (MIN)</label>
+                <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>DURATION (MIN)</label>
                 <input
                   type="number"
                   min="10"
@@ -659,7 +659,7 @@ export default function App() {
                     borderRadius: 10,
                     padding: "12px 14px",
                     color: "var(--text)",
-                    fontSize: 18,
+                    fontSize: "1.125rem",
                     fontFamily: "Georgia, serif",
                     marginBottom: 16,
                     boxSizing: "border-box",
@@ -669,7 +669,7 @@ export default function App() {
             )}
             {modal.type === "nap" && (
               <>
-                <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>DURATION (MIN)</label>
+                <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>DURATION (MIN)</label>
                 <input
                   type="number"
                   min="5"
@@ -683,7 +683,7 @@ export default function App() {
                     borderRadius: 10,
                     padding: "12px 14px",
                     color: "var(--text)",
-                    fontSize: 18,
+                    fontSize: "1.125rem",
                     fontFamily: "Georgia, serif",
                     marginBottom: 16,
                     boxSizing: "border-box",
@@ -700,7 +700,7 @@ export default function App() {
                 color: "var(--text-on-accent)",
                 borderRadius: 12,
                 border: "none",
-                fontSize: 16,
+                fontSize: "1rem",
                 fontWeight: "bold",
                 fontFamily: "Georgia, serif",
                 cursor: "pointer",
@@ -744,8 +744,8 @@ export default function App() {
               fontFamily: "Georgia, serif",
             }}
           >
-            <span style={{ fontSize: 17 }}>{t.icon}</span>
-            <span style={{ fontSize: 8, letterSpacing: "0.04em" }}>{t.label}</span>
+            <span style={{ fontSize: "1.0625rem" }}>{t.icon}</span>
+            <span style={{ fontSize: "0.5rem", letterSpacing: "0.04em" }}>{t.label}</span>
           </button>
         ))}
       </div>
@@ -775,18 +775,18 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
   return (
     <div>
       <div style={{ background: "linear-gradient(180deg, var(--bg-gradient) 0%, var(--bg) 100%)", padding: "32px 20px 20px", textAlign: "center" }}>
-        <div style={{ fontSize: 56, fontWeight: "bold", lineHeight: 1, letterSpacing: "-0.02em" }}>
-          {h12}:{String(mm).padStart(2, "0")} <span style={{ fontSize: 22, color: "var(--text-subtle)" }}>{ampm}</span>
+        <div style={{ fontSize: "3.5rem", fontWeight: "bold", lineHeight: 1, letterSpacing: "-0.02em" }}>
+          {h12}:{String(mm).padStart(2, "0")} <span style={{ fontSize: "1.375rem", color: "var(--text-subtle)" }}>{ampm}</span>
         </div>
-        <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-subtle)", letterSpacing: "0.08em" }}>
+        <div style={{ marginTop: 6, fontSize: "0.75rem", color: "var(--text-subtle)", letterSpacing: "0.08em" }}>
           WAKE {fmt12(plan.wakeTime)} · BED {fmt12(plan.bedTime)}
         </div>
         <div style={{ marginTop: 10, display: "inline-flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          <span style={{ background: "var(--border)", borderRadius: 20, padding: "4px 14px", fontSize: 12, color: "#6EE7B7" }}>{passed}/29 rules today</span>
+          <span style={{ background: "var(--border)", borderRadius: 20, padding: "4px 14px", fontSize: "0.75rem", color: "#6EE7B7" }}>{passed}/29 rules today</span>
           {!notifGranted && (
             <button
               onClick={requestNotifs}
-              style={{ background: "var(--border)", border: "none", borderRadius: 20, padding: "4px 14px", fontSize: 12, color: "#FCD34D", cursor: "pointer", fontFamily: "Georgia, serif" }}
+              style={{ background: "var(--border)", border: "none", borderRadius: 20, padding: "4px 14px", fontSize: "0.75rem", color: "#FCD34D", cursor: "pointer", fontFamily: "Georgia, serif" }}
             >
               🔔 Enable reminders
             </button>
@@ -801,9 +801,9 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
               key={i}
               style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card)", borderRadius: 10, padding: "10px 14px", marginBottom: 6, border: "1px solid var(--border)" }}
             >
-              <span style={{ fontSize: 18 }}>{c.icon}</span>
-              <span style={{ flex: 1, fontSize: 13, color: "var(--text-light)" }}>{c.label}</span>
-              <span style={{ fontSize: 13, fontWeight: "bold", color: c.mins <= 30 ? "#F87171" : c.mins <= 60 ? "#FCD34D" : "#6EE7B7" }}>
+              <span style={{ fontSize: "1.125rem" }}>{c.icon}</span>
+              <span style={{ flex: 1, fontSize: "0.8125rem", color: "var(--text-light)" }}>{c.label}</span>
+              <span style={{ fontSize: "0.8125rem", fontWeight: "bold", color: c.mins <= 30 ? "#F87171" : c.mins <= 60 ? "#FCD34D" : "#6EE7B7" }}>
                 {c.mins < 60 ? `${c.mins}m` : `${Math.floor(c.mins / 60)}h ${c.mins % 60}m`} · {fmt12(c.time)}
               </span>
             </div>
@@ -826,8 +826,8 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
                 border: `1px solid ${a.urgent ? "#22C55E33" : "var(--border)"}`,
               }}
             >
-              <span style={{ fontSize: 18 }}>{a.icon}</span>
-              <span style={{ fontSize: 13, color: a.urgent ? "#86EFAC" : "var(--text-secondary)", lineHeight: 1.4 }}>{a.text}</span>
+              <span style={{ fontSize: "1.125rem" }}>{a.icon}</span>
+              <span style={{ fontSize: "0.8125rem", color: a.urgent ? "#86EFAC" : "var(--text-secondary)", lineHeight: 1.4 }}>{a.text}</span>
             </div>
           ))}
         </div>
@@ -838,10 +838,10 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
           {statusItems.map((item, i) => (
             <div key={i} style={{ background: "var(--bg-card)", borderRadius: 12, padding: "12px 14px", border: `1px solid ${item.ok ? "var(--border-ok)" : "var(--border-bad)"}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
-                <span style={{ fontSize: 10, fontWeight: "bold", color: item.ok ? "#6EE7B7" : "#F87171" }}>{item.ok ? "✓ OK" : "✗ STOP"}</span>
+                <span style={{ fontSize: "1rem" }}>{item.icon}</span>
+                <span style={{ fontSize: "0.625rem", fontWeight: "bold", color: item.ok ? "#6EE7B7" : "#F87171" }}>{item.ok ? "✓ OK" : "✗ STOP"}</span>
               </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{item.ok ? `OK until ${item.cutoff}` : `Cutoff: ${item.cutoff}`}</div>
+              <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>{item.ok ? `OK until ${item.cutoff}` : `Cutoff: ${item.cutoff}`}</div>
             </div>
           ))}
         </div>
@@ -867,12 +867,12 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
                   cursor: "pointer",
                   color: done ? info.color : "var(--text-secondary)",
                   fontFamily: "Georgia, serif",
-                  fontSize: 12,
+                  fontSize: "0.75rem",
                 }}
               >
                 <span>{info.icon}</span>
                 <span>{info.label}</span>
-                {done && <span style={{ fontSize: 9 }}>✓</span>}
+                {done && <span style={{ fontSize: "0.5625rem" }}>✓</span>}
               </button>
             );
           })}
@@ -888,8 +888,8 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
 function LogTab({ todayEvents, openLog, removeEvent }) {
   return (
     <div style={{ padding: "20px 16px" }}>
-      <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: "normal" }}>Today's Log</h2>
-      <p style={{ color: "var(--text-subtle)", fontSize: 12, margin: "0 0 16px" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+      <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: "normal" }}>Today's Log</h2>
+      <p style={{ color: "var(--text-subtle)", fontSize: "0.75rem", margin: "0 0 16px" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
       {todayEvents.length === 0 ? (
         <p style={{ color: "var(--text-dim)", textAlign: "center", marginTop: 40, fontStyle: "italic" }}>Nothing logged yet.</p>
       ) : (
@@ -906,24 +906,24 @@ function LogTab({ todayEvents, openLog, removeEvent }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 18,
+                  fontSize: "1.125rem",
                   flexShrink: 0,
                 }}
               >
                 {info.icon || "•"}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14 }}>{info.label || ev.type}</div>
+                <div style={{ fontSize: "0.875rem" }}>{info.label || ev.type}</div>
                 {ev.intensity && (
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>
                     {ev.intensity}
                     {ev.duration ? `, ${ev.duration} min` : ""}
                   </div>
                 )}
-                {ev.duration && !ev.intensity && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{ev.duration} min</div>}
+                {ev.duration && !ev.intensity && <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>{ev.duration} min</div>}
               </div>
-              <span style={{ fontSize: 14, color: info.color || "var(--text-secondary)", fontWeight: "bold" }}>{fmt12(ev.time)}</span>
-              <button onClick={() => removeEvent(ev.id)} style={{ background: "none", border: "none", color: "var(--border-input)", cursor: "pointer", fontSize: 20, padding: "0 2px", lineHeight: 1 }}>
+              <span style={{ fontSize: "0.875rem", color: info.color || "var(--text-secondary)", fontWeight: "bold" }}>{fmt12(ev.time)}</span>
+              <button onClick={() => removeEvent(ev.id)} style={{ background: "none", border: "none", color: "var(--border-input)", cursor: "pointer", fontSize: "1.25rem", padding: "0 2px", lineHeight: 1 }}>
                 ×
               </button>
             </div>
@@ -949,7 +949,7 @@ function LogTab({ todayEvents, openLog, removeEvent }) {
               cursor: "pointer",
               color: "var(--text-secondary)",
               fontFamily: "Georgia, serif",
-              fontSize: 12,
+              fontSize: "0.75rem",
             }}
           >
             {info.icon} {info.label}
@@ -1037,14 +1037,14 @@ function ProgressTab({ logs, plan, today }) {
     .sort((a, b) => b.rate - a.rate);
 
   const barColor = (pct) => (pct >= 80 ? "#6EE7B7" : pct >= 60 ? "#FCD34D" : "#F87171");
-  const ttStyle = { background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: 12, fontFamily: "Georgia, serif" };
+  const ttStyle = { background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: "0.75rem", fontFamily: "Georgia, serif" };
 
   return (
     <div style={{ padding: "20px 16px 10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
         <div>
-          <h2 style={{ margin: "0 0 2px", fontSize: 20, fontWeight: "normal" }}>Progress</h2>
-          <p style={{ margin: 0, fontSize: 12, color: "var(--text-subtle)" }}>Based on auto-tracked rules</p>
+          <h2 style={{ margin: "0 0 2px", fontSize: "1.25rem", fontWeight: "normal" }}>Progress</h2>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-subtle)" }}>Based on auto-tracked rules</p>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {[7, 14, 30].map((n) => (
@@ -1059,7 +1059,7 @@ function ProgressTab({ logs, plan, today }) {
                 color: range === n ? "#6EE7B7" : "var(--text-muted)",
                 cursor: "pointer",
                 fontFamily: "Georgia, serif",
-                fontSize: 12,
+                fontSize: "0.75rem",
               }}
             >
               {n}d
@@ -1076,8 +1076,8 @@ function ProgressTab({ logs, plan, today }) {
           { label: "Streak", value: `${streak}d`, color: "#FCD34D" },
         ].map((s, i) => (
           <div key={i} style={{ background: "var(--bg-card)", borderRadius: 12, padding: "12px", textAlign: "center", border: "1px solid var(--border)" }}>
-            <div style={{ fontSize: 22, fontWeight: "bold", color: s.color, lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, letterSpacing: "0.05em" }}>{s.label.toUpperCase()}</div>
+            <div style={{ fontSize: "1.375rem", fontWeight: "bold", color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: "0.625rem", color: "var(--text-muted)", marginTop: 4, letterSpacing: "0.05em" }}>{s.label.toUpperCase()}</div>
           </div>
         ))}
       </div>
@@ -1087,8 +1087,8 @@ function ProgressTab({ logs, plan, today }) {
         <Sec label="Daily compliance score" />
         <ResponsiveContainer width="100%" height={140}>
           <BarChart data={days} margin={{ top: 4, right: 4, left: -28, bottom: 0 }} barSize={range <= 7 ? 28 : range <= 14 ? 18 : 10}>
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--text-muted)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--text-dim)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+            <XAxis dataKey="label" tick={{ fontSize: "0.625rem", fill: "var(--text-muted)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: "0.625rem", fill: "var(--text-dim)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
             <Tooltip contentStyle={ttStyle} formatter={(v, _n, p) => [`${p.payload.passed}/13 rules (${v}%)`, ""]} labelStyle={{ color: "var(--text-secondary)", marginBottom: 4 }} />
             <ReferenceLine y={80} stroke="#6EE7B744" strokeDasharray="4 4" />
             <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
@@ -1098,7 +1098,7 @@ function ProgressTab({ logs, plan, today }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 6, fontSize: 10, color: "var(--text-muted)" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 6, fontSize: "0.625rem", color: "var(--text-muted)" }}>
           {[
             ["#6EE7B7", "≥80%"],
             ["#FCD34D", "60–79%"],
@@ -1118,10 +1118,10 @@ function ProgressTab({ logs, plan, today }) {
           <Sec label="Sleep duration (hours)" />
           <ResponsiveContainer width="100%" height={120}>
             <LineChart data={days} margin={{ top: 4, right: 16, left: -28, bottom: 0 }}>
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--text-muted)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} />
-              <YAxis domain={[4, 10]} tick={{ fontSize: 10, fill: "var(--text-dim)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
+              <XAxis dataKey="label" tick={{ fontSize: "0.625rem", fill: "var(--text-muted)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} />
+              <YAxis domain={[4, 10]} tick={{ fontSize: "0.625rem", fill: "var(--text-dim)", fontFamily: "Georgia, serif" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
               <Tooltip contentStyle={ttStyle} formatter={(v) => [v ? `${v} hrs` : "—", ""]} />
-              <ReferenceLine y={8} stroke="#6EE7B744" strokeDasharray="4 4" label={{ value: "8h", position: "right", fontSize: 9, fill: "#6EE7B766", fontFamily: "Georgia, serif" }} />
+              <ReferenceLine y={8} stroke="#6EE7B744" strokeDasharray="4 4" label={{ value: "8h", position: "right", fontSize: "0.5625rem", fill: "#6EE7B766", fontFamily: "Georgia, serif" }} />
               <Line type="monotone" dataKey="sleepDuration" stroke="#93C5FD" strokeWidth={2} dot={{ fill: "#93C5FD", r: 3 }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
@@ -1139,7 +1139,7 @@ function ProgressTab({ logs, plan, today }) {
           { label: "Caffeine on time", color: "#A78BFA", vals: days.map((d) => d.events.length > 0 && d.R.r19 === PASS) },
         ].map((h, hi) => (
           <div key={hi} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", minWidth: 110, flexShrink: 0 }}>{h.label}</span>
+            <span style={{ fontSize: "0.6875rem", color: "var(--text-secondary)", minWidth: 110, flexShrink: 0 }}>{h.label}</span>
             <div style={{ display: "flex", gap: 3, flex: 1, justifyContent: "flex-end" }}>
               {h.vals.map((v, i) => (
                 <div key={i} style={{ width: 14, height: 14, borderRadius: 3, background: v ? h.color : days[i].events.length > 0 ? "var(--bg-input)" : "var(--bg-surface)", flexShrink: 0 }} />
@@ -1149,7 +1149,7 @@ function ProgressTab({ logs, plan, today }) {
         ))}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 3, marginTop: 6 }}>
           {days.map((d, i) => (
-            <div key={i} style={{ width: 14, fontSize: 7, color: "var(--text-dim)", textAlign: "center", flexShrink: 0 }}>
+            <div key={i} style={{ width: 14, fontSize: "0.4375rem", color: "var(--text-dim)", textAlign: "center", flexShrink: 0 }}>
               {d.label[0]}
             </div>
           ))}
@@ -1172,20 +1172,20 @@ function ProgressTab({ logs, plan, today }) {
             },
           ].map((panel, pi) => (
             <div key={pi} style={{ background: "var(--bg-card)", borderRadius: 14, padding: "14px", border: `1px solid ${panel.borderColor}` }}>
-              <div style={{ fontSize: 10, color: panel.color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>{panel.title}</div>
+              <div style={{ fontSize: "0.625rem", color: panel.color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>{panel.title}</div>
               {panel.data.length === 0 ? (
-                <p style={{ fontSize: 12, color: "var(--text-dim)", fontStyle: "italic", margin: 0 }}>None yet</p>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-dim)", fontStyle: "italic", margin: 0 }}>None yet</p>
               ) : (
                 panel.data.map((r, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, color: "var(--text-light)", marginBottom: 3, lineHeight: 1.3 }}>
+                    <div style={{ fontSize: "0.6875rem", color: "var(--text-light)", marginBottom: 3, lineHeight: 1.3 }}>
                       #{r.num} {r.title}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 2, overflow: "hidden" }}>
                         <div style={{ height: "100%", width: `${r.rate}%`, background: panel.color, borderRadius: 2 }} />
                       </div>
-                      <span style={{ fontSize: 10, color: panel.color, minWidth: 28 }}>{r.rate}%</span>
+                      <span style={{ fontSize: "0.625rem", color: panel.color, minWidth: 28 }}>{r.rate}%</span>
                     </div>
                   </div>
                 ))
@@ -1206,9 +1206,9 @@ function ProgressTab({ logs, plan, today }) {
           { icon: "🍷", label: "Alcohol sessions", value: alcoholTotal === 0 ? "None logged" : `${alcoholTotal} (avg ${(alcoholTotal / (daysLogged || 1)).toFixed(1)}/day)` },
         ].map((h, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
-            <span style={{ fontSize: 16 }}>{h.icon}</span>
-            <span style={{ flex: 1, fontSize: 13, color: "var(--text-secondary)" }}>{h.label}</span>
-            <span style={{ fontSize: 13, color: "var(--text)", fontWeight: "bold" }}>{h.value}</span>
+            <span style={{ fontSize: "1rem" }}>{h.icon}</span>
+            <span style={{ flex: 1, fontSize: "0.8125rem", color: "var(--text-secondary)" }}>{h.label}</span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--text)", fontWeight: "bold" }}>{h.value}</span>
           </div>
         ))}
       </div>
@@ -1229,14 +1229,14 @@ function ScoreTab({ R, passed, failed, pending, manual, toggleManual }) {
   return (
     <div style={{ padding: "20px 16px" }}>
       <div style={{ background: "var(--bg-card)", borderRadius: 16, padding: "20px", marginBottom: 20, textAlign: "center", border: `1px solid ${grade.c}33` }}>
-        <div style={{ fontSize: 52, fontWeight: "bold", color: grade.c, lineHeight: 1 }}>{passed}</div>
-        <div style={{ fontSize: 13, color: "var(--text-subtle)", marginTop: 4 }}>
+        <div style={{ fontSize: "3.25rem", fontWeight: "bold", color: grade.c, lineHeight: 1 }}>{passed}</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--text-subtle)", marginTop: 4 }}>
           of 29 rules · <span style={{ color: grade.c }}>{grade.l}</span>
         </div>
         <div style={{ margin: "14px 0 6px", height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${pct}%`, background: grade.c, borderRadius: 3, transition: "width 0.5s" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 20, fontSize: 12 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, fontSize: "0.75rem" }}>
           <span style={{ color: "#6EE7B7" }}>✓ {passed}</span>
           <span style={{ color: "#F87171" }}>✗ {failed}</span>
           <span style={{ color: "var(--text-dim)" }}>· {pending} pending</span>
@@ -1256,7 +1256,7 @@ function ScoreTab({ R, passed, failed, pending, manual, toggleManual }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 12,
+                fontSize: "0.75rem",
                 fontWeight: "bold",
                 background: s === PASS ? "#6EE7B722" : s === FAIL ? "#EF444422" : "var(--border)",
                 color: s === PASS ? "#6EE7B7" : s === FAIL ? "#F87171" : "var(--text-dim)",
@@ -1264,8 +1264,8 @@ function ScoreTab({ R, passed, failed, pending, manual, toggleManual }) {
             >
               {s === PASS ? "✓" : s === FAIL ? "✗" : "·"}
             </div>
-            <span style={{ fontSize: 13, color: s === FAIL ? "#F87171" : s === PASS ? "var(--text-secondary)" : "var(--text-muted)", flex: 1 }}>
-              <span style={{ color: "var(--text-dim)", fontSize: 11 }}>#{n}</span> {rInfo(n)?.title}
+            <span style={{ fontSize: "0.8125rem", color: s === FAIL ? "#F87171" : s === PASS ? "var(--text-secondary)" : "var(--text-muted)", flex: 1 }}>
+              <span style={{ color: "var(--text-dim)", fontSize: "0.6875rem" }}>#{n}</span> {rInfo(n)?.title}
             </span>
           </div>
         );
@@ -1287,15 +1287,15 @@ function ScoreTab({ R, passed, failed, pending, manual, toggleManual }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 12,
+                fontSize: "0.75rem",
                 color: "#6EE7B7",
                 flexShrink: 0,
               }}
             >
               {checked ? "✓" : ""}
             </div>
-            <span style={{ fontSize: 13, color: checked ? "var(--text-secondary)" : "var(--text-muted)", flex: 1 }}>
-              <span style={{ color: "var(--text-dim)", fontSize: 11 }}>#{n}</span> {rInfo(n)?.title}
+            <span style={{ fontSize: "0.8125rem", color: checked ? "var(--text-secondary)" : "var(--text-muted)", flex: 1 }}>
+              <span style={{ color: "var(--text-dim)", fontSize: "0.6875rem" }}>#{n}</span> {rInfo(n)?.title}
             </span>
           </div>
         );
@@ -1320,11 +1320,11 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
   ];
   return (
     <div style={{ padding: "20px 16px" }}>
-      <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: "normal" }}>Your Sleep Plan</h2>
-      <p style={{ color: "var(--text-subtle)", fontSize: 12, margin: "0 0 20px", lineHeight: 1.5 }}>All cutoffs and reminders derive from these two numbers.</p>
+      <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: "normal" }}>Your Sleep Plan</h2>
+      <p style={{ color: "var(--text-subtle)", fontSize: "0.75rem", margin: "0 0 20px", lineHeight: 1.5 }}>All cutoffs and reminders derive from these two numbers.</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
         <div style={{ background: "var(--bg-card)", borderRadius: 14, padding: "16px", border: "1px solid var(--border)" }}>
-          <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>WAKE TIME</label>
+          <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>WAKE TIME</label>
           <input
             type="time"
             value={plan.wakeTime}
@@ -1336,7 +1336,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
               borderRadius: 8,
               padding: "10px",
               color: "#F59E0B",
-              fontSize: 20,
+              fontSize: "1.25rem",
               fontFamily: "Georgia, serif",
               textAlign: "center",
               boxSizing: "border-box",
@@ -1344,7 +1344,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
           />
         </div>
         <div style={{ background: "var(--bg-card)", borderRadius: 14, padding: "16px", border: "1px solid var(--border)" }}>
-          <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>BED TIME</label>
+          <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>BED TIME</label>
           <input
             type="time"
             value={plan.bedTime}
@@ -1356,7 +1356,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
               borderRadius: 8,
               padding: "10px",
               color: "#6EE7B7",
-              fontSize: 20,
+              fontSize: "1.25rem",
               fontFamily: "Georgia, serif",
               textAlign: "center",
               boxSizing: "border-box",
@@ -1375,7 +1375,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
             borderRadius: 12,
             color: "#6EE7B7",
             fontFamily: "Georgia, serif",
-            fontSize: 14,
+            fontSize: "0.875rem",
             cursor: "pointer",
             marginBottom: 20,
           }}
@@ -1386,7 +1386,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
       <Sec label="Display" />
       <div style={{ background: "var(--bg-card)", borderRadius: 14, padding: "16px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>FONT SIZE</label>
+          <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>FONT SIZE</label>
           <div style={{ display: "flex", gap: 8 }}>
             {["small", "medium", "large"].map((size) => (
               <button
@@ -1411,7 +1411,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
           </div>
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>THEME</label>
+          <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 8 }}>THEME</label>
           <div style={{ display: "flex", gap: 8 }}>
             {[
               { id: "dark", label: "Dark", icon: "🌙" },
@@ -1429,7 +1429,7 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
                   color: prefs.theme === t.id ? "#6EE7B7" : "var(--text-secondary)",
                   cursor: "pointer",
                   fontFamily: "Georgia, serif",
-                  fontSize: 14,
+                  fontSize: "0.875rem",
                 }}
               >
                 {t.icon} {t.label}
@@ -1442,12 +1442,12 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
       <Sec label="Auto-calculated cutoffs" />
       {CUTOFFS.map((c, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-          <span style={{ fontSize: 20, width: 28, textAlign: "center", flexShrink: 0 }}>{c.icon}</span>
+          <span style={{ fontSize: "1.25rem", width: 28, textAlign: "center", flexShrink: 0 }}>{c.icon}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14 }}>{c.label}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.rule}</div>
+            <div style={{ fontSize: "0.875rem" }}>{c.label}</div>
+            <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>{c.rule}</div>
           </div>
-          <div style={{ fontSize: 16, fontWeight: "bold", color: "#6EE7B7", flexShrink: 0 }}>{fmt12(c.time)}</div>
+          <div style={{ fontSize: "1rem", fontWeight: "bold", color: "#6EE7B7", flexShrink: 0 }}>{fmt12(c.time)}</div>
         </div>
       ))}
     </div>
@@ -1461,14 +1461,14 @@ function RulesTab() {
   const [open, setOpen] = useState(null);
   return (
     <div style={{ padding: "20px 16px" }}>
-      <h2 style={{ margin: "0 0 2px", fontSize: 20, fontWeight: "normal" }}>The 29 Rules</h2>
-      <p style={{ color: "var(--text-subtle)", fontSize: 11, margin: "0 0 20px" }}>How to Engineer Perfect Sleep · polymathinvestor.com</p>
+      <h2 style={{ margin: "0 0 2px", fontSize: "1.25rem", fontWeight: "normal" }}>The 29 Rules</h2>
+      <p style={{ color: "var(--text-subtle)", fontSize: "0.6875rem", margin: "0 0 20px" }}>How to Engineer Perfect Sleep · polymathinvestor.com</p>
       {CATS.map((cat) => {
         const { label, color, icon } = CAT_META[cat];
         return (
           <div key={cat} style={{ marginBottom: 16 }}>
             <div style={{ borderLeft: `3px solid ${color}`, paddingLeft: 10, marginBottom: 8 }}>
-              <div style={{ fontSize: 11, color, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <div style={{ fontSize: "0.6875rem", color, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 {icon} {label}
               </div>
             </div>
@@ -1491,17 +1491,17 @@ function RulesTab() {
                       fontFamily: "Georgia, serif",
                     }}
                   >
-                    <span style={{ fontSize: 11, color, fontWeight: "bold", minWidth: 20 }}>#{r.num}</span>
-                    <span style={{ flex: 1, fontSize: 14, color: "var(--text)" }}>{r.title}</span>
-                    {r.auto && <span style={{ fontSize: 9, color: "var(--text-dim)", background: "var(--border)", borderRadius: 4, padding: "2px 5px", flexShrink: 0 }}>AUTO</span>}
-                    <span style={{ fontSize: 10, color: "var(--text-dim)" }}>{isOpen ? "▲" : "▼"}</span>
+                    <span style={{ fontSize: "0.6875rem", color, fontWeight: "bold", minWidth: 20 }}>#{r.num}</span>
+                    <span style={{ flex: 1, fontSize: "0.875rem", color: "var(--text)" }}>{r.title}</span>
+                    {r.auto && <span style={{ fontSize: "0.5625rem", color: "var(--text-dim)", background: "var(--border)", borderRadius: 4, padding: "2px 5px", flexShrink: 0 }}>AUTO</span>}
+                    <span style={{ fontSize: "0.625rem", color: "var(--text-dim)" }}>{isOpen ? "▲" : "▼"}</span>
                   </button>
                   {isOpen && (
                     <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${color}22` }}>
-                      <p style={{ margin: "10px 0 8px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.65 }}>{r.short}</p>
+                      <p style={{ margin: "10px 0 8px", fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.65 }}>{r.short}</p>
                       <div style={{ background: "var(--bg)", borderRadius: 8, padding: "10px 12px" }}>
-                        <div style={{ fontSize: 9, color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Application</div>
-                        <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65 }}>{r.tip}</p>
+                        <div style={{ fontSize: "0.5625rem", color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Application</div>
+                        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.65 }}>{r.tip}</p>
                       </div>
                     </div>
                   )}
@@ -1516,7 +1516,7 @@ function RulesTab() {
 }
 
 function Sec({ label }) {
-  return <div style={{ fontSize: 11, color: "var(--text-subtle)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>;
+  return <div style={{ fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>;
 }
 
 export { AUTO_RULE_IDS, computeAutoCompliance, computeCompliance, deriveSchedule, FAIL, fmt12, MANUAL_RULE_IDS, minsUntil, PASS, PENDING, pruneLogs, RULES, toMins, toTime };

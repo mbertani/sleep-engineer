@@ -19,15 +19,56 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <style>
+      :root {
+        --font-scale: 1;
+        --bg: #070B14;
+        --bg-gradient: #0D1530;
+        --bg-card: #0D1221;
+        --bg-surface: #111827;
+        --bg-input: #1F2937;
+        --bg-overlay: #000000BB;
+        --bg-alert: #111F0F;
+        --border: #1A2340;
+        --border-input: #374151;
+        --border-ok: #1A3A2A;
+        --border-bad: #3A1A1A;
+        --text: #E8E4F0;
+        --text-light: #D1D5DB;
+        --text-secondary: #9CA3AF;
+        --text-subtle: #7A7494;
+        --text-muted: #6B7280;
+        --text-dim: #4B5563;
+        --text-on-accent: #07090F;
+      }
+      html.light {
+        --bg: #FAF7F2;
+        --bg-gradient: #F0EBE3;
+        --bg-card: #FFFFFF;
+        --bg-surface: #F5F1EB;
+        --bg-input: #EDE9E1;
+        --bg-overlay: #00000066;
+        --bg-alert: #F0F8ED;
+        --border: #DDD8CF;
+        --border-input: #C5BFB5;
+        --border-ok: #C5E0C5;
+        --border-bad: #E0C5C5;
+        --text: #1A1A2E;
+        --text-light: #2D2D44;
+        --text-secondary: #555566;
+        --text-subtle: #6E6E82;
+        --text-muted: #888899;
+        --text-dim: #AAAABC;
+        --text-on-accent: #FFFFFF;
+      }
       * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { font-size: calc(16px * var(--font-scale)); }
       body {
-        background: #070B14;
-        color: #E8E4F0;
+        background: var(--bg);
+        color: var(--text);
         font-family: Georgia, "Times New Roman", serif;
         -webkit-font-smoothing: antialiased;
         overscroll-behavior: none;
       }
-      /* Safe area padding for notched phones */
       #root {
         padding-bottom: env(safe-area-inset-bottom);
       }

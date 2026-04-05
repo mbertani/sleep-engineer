@@ -99,8 +99,9 @@ const toMins = (t) => {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 };
+const wrapMins = (m) => ((m % 1440) + 1440) % 1440;
 const toTime = (m) => {
-  const n = ((m % 1440) + 1440) % 1440;
+  const n = wrapMins(m);
   return `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
 };
 const fmt12 = (t) => {
@@ -183,7 +184,7 @@ const RULES = [
   {
     num: 5,
     cat: "Circadian",
-    auto: false,
+    auto: true,
     title: "The 11% social jet lag tax",
     short: "Each hour of weekend-to-weekday sleep midpoint shift = 11% higher cardiovascular disease risk.",
     tip: "Keep weekend sleep midpoint within 1 hour of weekday midpoint.",
@@ -272,17 +273,17 @@ const RULES = [
     num: 16,
     cat: "Environment",
     auto: false,
-    title: "The 65°F (18.3°C) bedroom",
-    short: "Target bedroom temperature of 65°F (18.3°C). Temperatures above 70°F (21.1°C) promote insomnia.",
-    tip: "Set thermostat to 65°F before bed. Socks promote vasodilation and faster sleep onset.",
+    title: "The 18°C / 65°F bedroom",
+    short: "Target bedroom temperature of 18°C / 65°F. Temperatures above 21°C / 70°F promote insomnia.",
+    tip: "Set thermostat to 18°C / 65°F before bed. Socks promote vasodilation and faster sleep onset.",
   },
   {
     num: 17,
     cat: "Environment",
-    auto: false,
+    auto: true,
     title: "The 90-min warm bath paradox",
     short: "A warm bath 90 minutes before bed cools you down — cutting sleep onset latency by ~36%.",
-    tip: "Bath for 10–15 min at 104–108°F, finishing ~90 minutes before target sleep time.",
+    tip: "Bath for 10–15 min at 40–42°C / 104–108°F, finishing ~90 minutes before target sleep time.",
   },
   {
     num: 18,
@@ -448,7 +449,8 @@ function computeAutoCompliance(plan, events) {
     exercise = last("exercise");
   const wind = last("wind_down"),
     screens = last("screens_off"),
-    todo = last("todo_list");
+    todo = last("todo_list"),
+    bath = last("bath");
 
   const R = {};
   R.r1 = wakeEv ? (Math.abs(toMins(wakeEv.time) - wake) <= 30 ? PASS : FAIL) : PENDING;
@@ -475,21 +477,64 @@ function computeAutoCompliance(plan, events) {
   R.r24 = wind ? (toMins(wind.time) <= bed - 30 ? PASS : FAIL) : PENDING;
   R.r27 = screens ? (toMins(screens.time) <= bed - 60 ? PASS : FAIL) : PENDING;
   R.r29 = todo ? PASS : PENDING;
+  if (bath) {
+    const bathMins = toMins(bath.time);
+    const minsBefore = wrapMins(bed - bathMins);
+    R.r17 = minsBefore >= 60 && minsBefore <= 120 ? PASS : FAIL;
+  } else R.r17 = PENDING;
 
   return { R, passed: countStatus(R, PASS), failed: countStatus(R, FAIL) };
 }
 
-function computeCompliance(plan, events, manual) {
+function computeCompliance(plan, events, manual, jetLag) {
   const { R } = computeAutoCompliance(plan, events);
   MANUAL_RULE_KEYS.forEach((k) => {
     R[k] = manual[k] ? PASS : PENDING;
   });
+  R.r5 = jetLag ? (jetLag.ok ? PASS : FAIL) : PENDING;
   return {
     R,
     passed: countStatus(R, PASS),
     failed: countStatus(R, FAIL),
     pending: countStatus(R, PENDING),
   };
+}
+
+// Sleep midpoint: midpoint between sleep and wake times (in minutes from midnight)
+function sleepMidpoint(sleepTime, wakeTime) {
+  const s = toMins(sleepTime),
+    w = toMins(wakeTime);
+  // If sleep > wake, sleep is before midnight
+  const dur = s > w ? 1440 - s + w : w - s;
+  return wrapMins(s + dur / 2);
+}
+
+function computeSocialJetLag(logs) {
+  const now = new Date();
+  const weekdayMids = [],
+    weekendMids = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const events = logs[key] || [];
+    const sleepEv = events.find((e) => e.type === "sleep");
+    const wakeEv = events.find((e) => e.type === "wake");
+    if (!sleepEv || !wakeEv) continue;
+    const mid = sleepMidpoint(sleepEv.time, wakeEv.time);
+    const dow = d.getDay(); // 0=Sun, 6=Sat
+    if (dow === 0 || dow === 6) weekendMids.push(mid);
+    else weekdayMids.push(mid);
+  }
+  if (weekdayMids.length === 0 || weekendMids.length === 0) return null;
+  const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const wdAvg = avg(weekdayMids),
+    weAvg = avg(weekendMids);
+  // Handle wrap-around midnight
+  let diff = Math.abs(weAvg - wdAvg);
+  if (diff > 720) diff = 1440 - diff;
+  const shiftHours = +(diff / 60).toFixed(1);
+  return { shiftHours, weekdayMidpoint: toTime(Math.round(wdAvg)), weekendMidpoint: toTime(Math.round(weAvg)), ok: shiftHours <= 1 };
 }
 
 // ─── CURRENT STATUS ───────────────────────────────────────────────────────────
@@ -643,7 +688,8 @@ export default function App() {
   }
 
   const sched = useMemo(() => deriveSchedule(plan), [plan]);
-  const compliance = useMemo(() => computeCompliance(plan, todayEvents, manual), [plan, todayEvents, manual]);
+  const jetLag = useMemo(() => computeSocialJetLag(logs), [logs]);
+  const compliance = useMemo(() => computeCompliance(plan, todayEvents, manual, jetLag), [plan, todayEvents, manual, jetLag]);
   const { R, passed, failed, pending } = compliance;
   const { items: statusItems, alerts } = useMemo(() => getCurrentStatus(plan, now), [plan, now]);
 
@@ -716,7 +762,7 @@ export default function App() {
         />
       )}
       {tab === "log" && <LogTab logs={logs} today={today} openLog={openLog} removeEvent={removeEvent} />}
-      {tab === "progress" && <ProgressTab logs={logs} plan={plan} today={today} />}
+      {tab === "progress" && <ProgressTab logs={logs} plan={plan} today={today} jetLag={jetLag} />}
       {tab === "score" && <ScoreTab R={R} passed={passed} failed={failed} pending={pending} manual={manual} toggleManual={toggleManual} />}
       {tab === "plan" && (
         <PlanTab
@@ -1173,7 +1219,7 @@ function LogTab({ logs, today, openLog, removeEvent }) {
 // ════════════════════════════════════════════════════════════════════════════
 // PROGRESS
 // ════════════════════════════════════════════════════════════════════════════
-function ProgressTab({ logs, plan, today }) {
+function ProgressTab({ logs, plan, today, jetLag }) {
   const [range, setRange] = useState(14);
 
   const days = useMemo(
@@ -1291,6 +1337,24 @@ function ProgressTab({ logs, plan, today }) {
           </div>
         ))}
       </div>
+
+      {/* Social jet lag */}
+      {jetLag && (
+        <div style={{ background: "var(--bg-card)", borderRadius: 14, padding: "16px", marginBottom: 14, border: `1px solid ${jetLag.ok ? "var(--border-ok)" : "var(--border-bad)"}` }}>
+          <Sec label="Social jet lag (Rule 5)" />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: "1.375rem", fontWeight: "bold", color: jetLag.ok ? "#6EE7B7" : "#F87171" }}>{jetLag.shiftHours}h shift</div>
+            <div style={{ fontSize: "0.75rem", color: jetLag.ok ? "#6EE7B7" : "#F87171", background: jetLag.ok ? "#6EE7B722" : "#EF444422", borderRadius: 8, padding: "4px 10px" }}>
+              {jetLag.ok ? "Within 1h target" : "Above 1h target"}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 16, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            <span>Weekday midpoint: {fmt12(jetLag.weekdayMidpoint)}</span>
+            <span>Weekend midpoint: {fmt12(jetLag.weekendMidpoint)}</span>
+          </div>
+          <div style={{ fontSize: "0.6875rem", color: "var(--text-dim)", marginTop: 6 }}>Based on last 14 days of sleep/wake logs</div>
+        </div>
+      )}
 
       {/* Compliance bar chart */}
       <div style={{ background: "var(--bg-card)", borderRadius: 14, padding: "16px", marginBottom: 14, border: "1px solid var(--border)" }}>
@@ -1794,6 +1858,7 @@ export {
   AUTO_RULE_IDS,
   computeAutoCompliance,
   computeCompliance,
+  computeSocialJetLag,
   DATA_VERSION,
   deriveSchedule,
   exportDataFromState,
@@ -1806,6 +1871,7 @@ export {
   PENDING,
   pruneLogs,
   RULES,
+  sleepMidpoint,
   toMins,
   toTime,
 };

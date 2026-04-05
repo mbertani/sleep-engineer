@@ -3,6 +3,7 @@ import {
   AUTO_RULE_IDS,
   computeAutoCompliance,
   computeCompliance,
+  computeSocialJetLag,
   DATA_VERSION,
   deriveSchedule,
   FAIL,
@@ -14,6 +15,7 @@ import {
   PENDING,
   pruneLogs,
   RULES,
+  sleepMidpoint,
   toMins,
   toTime,
 } from "./App.jsx";
@@ -220,6 +222,78 @@ describe("importData", () => {
     const lines = [JSON.stringify({ type: "plan", data: { wakeTime: "06:30", bedTime: "22:30" } }), JSON.stringify({ type: "logs", data: {} })].join("\n");
     const result = importData(lines);
     expect(result.plan.wakeTime).toBe("06:30");
+  });
+});
+
+describe("sleepMidpoint", () => {
+  it("calculates midpoint for normal night (sleep before midnight, wake after)", () => {
+    // Sleep at 22:00, wake at 06:00 => 8h sleep, midpoint at 02:00
+    expect(sleepMidpoint("22:00", "06:00")).toBe(toMins("02:00"));
+  });
+
+  it("calculates midpoint for late sleeper", () => {
+    // Sleep at 00:00, wake at 08:00 => midpoint at 04:00
+    expect(sleepMidpoint("00:00", "08:00")).toBe(toMins("04:00"));
+  });
+});
+
+describe("computeSocialJetLag", () => {
+  it("returns null with insufficient data", () => {
+    expect(computeSocialJetLag({})).toBeNull();
+  });
+
+  it("calculates shift from weekday vs weekend midpoints", () => {
+    const logs = {};
+    const now = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) {
+        // Weekend: sleep at 00:00, wake at 10:00 => midpoint 05:00
+        logs[key] = [
+          { type: "sleep", time: "00:00" },
+          { type: "wake", time: "10:00" },
+        ];
+      } else {
+        // Weekday: sleep at 22:00, wake at 06:00 => midpoint 01:00
+        logs[key] = [
+          { type: "sleep", time: "22:00" },
+          { type: "wake", time: "06:00" },
+        ];
+      }
+    }
+    const result = computeSocialJetLag(logs);
+    expect(result).not.toBeNull();
+    expect(result.shiftHours).toBe(3);
+    expect(result.ok).toBe(false);
+  });
+
+  it("passes when shift is within 1 hour", () => {
+    const logs = {};
+    const now = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) {
+        logs[key] = [
+          { type: "sleep", time: "22:30" },
+          { type: "wake", time: "06:30" },
+        ];
+      } else {
+        logs[key] = [
+          { type: "sleep", time: "22:00" },
+          { type: "wake", time: "06:00" },
+        ];
+      }
+    }
+    const result = computeSocialJetLag(logs);
+    expect(result).not.toBeNull();
+    expect(result.shiftHours).toBeLessThanOrEqual(1);
+    expect(result.ok).toBe(true);
   });
 });
 

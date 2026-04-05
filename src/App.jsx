@@ -395,6 +395,13 @@ const CAT_META = {
 const PASS = "pass",
   FAIL = "fail",
   PENDING = "pending";
+const EVENING_THRESHOLD = 18 * 60;
+const EMPTY_EVENTS = [];
+
+function findSleepEvent(prevDayEvents, sameDayEvents) {
+  const prevSleep = prevDayEvents.find((e) => e.type === "sleep" && toMins(e.time) >= EVENING_THRESHOLD);
+  return prevSleep || sameDayEvents.find((e) => e.type === "sleep");
+}
 const AUTO_RULE_IDS = RULES.filter((r) => r.auto).map((r) => r.num);
 const MANUAL_RULE_IDS = RULES.filter((r) => !r.auto).map((r) => r.num);
 const MANUAL_RULE_KEYS = MANUAL_RULE_IDS.map((n) => `r${n}`);
@@ -429,7 +436,7 @@ function deriveSchedule(plan) {
 }
 
 // ─── COMPLIANCE ───────────────────────────────────────────────────────────────
-function computeAutoCompliance(plan, events) {
+function computeAutoCompliance(plan, events, prevDayEvents = EMPTY_EVENTS) {
   const s = deriveSchedule(plan);
   const bed = toMins(plan.bedTime),
     wake = toMins(plan.wakeTime);
@@ -440,7 +447,6 @@ function computeAutoCompliance(plan, events) {
   };
 
   const wakeEv = last("wake"),
-    sleepEv = last("sleep"),
     mLight = last("morning_light");
   const aLight = last("afternoon_light"),
     coffee = last("coffee"),
@@ -451,6 +457,7 @@ function computeAutoCompliance(plan, events) {
     screens = last("screens_off"),
     todo = last("todo_list"),
     bath = last("bath");
+  const sleepEv = findSleepEvent(prevDayEvents, events);
 
   const R = {};
   R.r1 = wakeEv ? (Math.abs(toMins(wakeEv.time) - wake) <= 30 ? PASS : FAIL) : PENDING;
@@ -486,8 +493,8 @@ function computeAutoCompliance(plan, events) {
   return { R, passed: countStatus(R, PASS), failed: countStatus(R, FAIL) };
 }
 
-function computeCompliance(plan, events, manual, jetLag) {
-  const { R } = computeAutoCompliance(plan, events);
+function computeCompliance(plan, events, manual, jetLag, prevDayEvents = EMPTY_EVENTS) {
+  const { R } = computeAutoCompliance(plan, events, prevDayEvents);
   MANUAL_RULE_KEYS.forEach((k) => {
     R[k] = manual[k] ? PASS : PENDING;
   });
@@ -518,11 +525,15 @@ function computeSocialJetLag(logs) {
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
     const events = logs[key] || [];
-    const sleepEv = events.find((e) => e.type === "sleep");
     const wakeEv = events.find((e) => e.type === "wake");
-    if (!sleepEv || !wakeEv) continue;
+    if (!wakeEv) continue;
+    const prevD = new Date(d);
+    prevD.setDate(prevD.getDate() - 1);
+    const prevEvents = logs[prevD.toISOString().slice(0, 10)] || [];
+    const sleepEv = findSleepEvent(prevEvents, events);
+    if (!sleepEv) continue;
     const mid = sleepMidpoint(sleepEv.time, wakeEv.time);
-    const dow = d.getDay(); // 0=Sun, 6=Sat
+    const dow = d.getDay();
     if (dow === 0 || dow === 6) weekendMids.push(mid);
     else weekdayMids.push(mid);
   }
@@ -688,8 +699,9 @@ export default function App() {
   }
 
   const sched = useMemo(() => deriveSchedule(plan), [plan]);
+  const yesterdayEvents = logs[yesterdayKey()] || EMPTY_EVENTS;
   const jetLag = useMemo(() => computeSocialJetLag(logs), [logs]);
-  const compliance = useMemo(() => computeCompliance(plan, todayEvents, manual, jetLag), [plan, todayEvents, manual, jetLag]);
+  const compliance = useMemo(() => computeCompliance(plan, todayEvents, manual, jetLag, yesterdayEvents), [plan, todayEvents, manual, jetLag, yesterdayEvents]);
   const { R, passed, failed, pending } = compliance;
   const { items: statusItems, alerts } = useMemo(() => getCurrentStatus(plan, now), [plan, now]);
 
@@ -1229,11 +1241,14 @@ function ProgressTab({ logs, plan, today, jetLag }) {
         d.setDate(d.getDate() - (range - 1 - i));
         const key = d.toISOString().slice(0, 10);
         const events = logs[key] || [];
-        const autoCompliance = computeAutoCompliance(plan, events);
+        const prevD = new Date(d);
+        prevD.setDate(prevD.getDate() - 1);
+        const prevEvents = logs[prevD.toISOString().slice(0, 10)] || [];
+        const autoCompliance = computeAutoCompliance(plan, events, prevEvents);
         const { passed, failed, R } = autoCompliance;
-        const pct = Math.round((passed / 13) * 100);
+        const pct = Math.round((passed / Object.keys(R).length) * 100);
         const wakeEv = events.find((e) => e.type === "wake");
-        const sleepEv = events.find((e) => e.type === "sleep");
+        const sleepEv = findSleepEvent(prevEvents, events);
         let sleepDuration = null;
         if (wakeEv && sleepEv) {
           const sv = toMins(sleepEv.time),

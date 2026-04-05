@@ -18,6 +18,81 @@ const store = {
   },
 };
 
+// ─── DATA VERSIONING ─────────────────────────────────────────────────────────
+const DATA_VERSION = 1;
+const DATA_KEYS = ["plan", "logs", "manual", "prefs"];
+const MIGRATIONS = [];
+
+function runMigrations(data, fromVersion) {
+  for (const m of MIGRATIONS) {
+    if (m.toVersion > fromVersion) data = m.migrate(data);
+  }
+  return data;
+}
+
+function readDataBag() {
+  const bag = {};
+  for (const k of DATA_KEYS) bag[k] = store.get(`slp_${k}`);
+  return bag;
+}
+
+function writeDataBag(data) {
+  for (const k of DATA_KEYS) store.set(`slp_${k}`, data[k]);
+}
+
+function loadAndMigrateData() {
+  const storedVersion = store.get("slp_version");
+  if (storedVersion == null && store.get("slp_plan") == null) {
+    store.set("slp_version", DATA_VERSION);
+    return { data: readDataBag(), ok: true, error: null };
+  }
+  const version = storedVersion ?? 0;
+  let data = readDataBag();
+
+  if (version === DATA_VERSION) return { data, ok: true, error: null };
+  if (version > DATA_VERSION) return { data, ok: false, error: "Data is from a newer app version. Please update the app." };
+
+  try {
+    data = runMigrations(data, version);
+    writeDataBag(data);
+    store.set("slp_version", DATA_VERSION);
+    return { data, ok: true, error: null };
+  } catch (err) {
+    return { data, ok: false, error: `Migration failed: ${err.message}` };
+  }
+}
+
+function exportDataFromState(plan, logs, manual, prefs) {
+  const lines = [
+    JSON.stringify({ type: "meta", version: DATA_VERSION, exportedAt: new Date().toISOString() }),
+    JSON.stringify({ type: "plan", data: plan }),
+    JSON.stringify({ type: "logs", data: logs }),
+    JSON.stringify({ type: "manual", data: manual }),
+    JSON.stringify({ type: "prefs", data: prefs }),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "application/jsonl" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sleep-engineer-backup-${new Date().toISOString().slice(0, 10)}.jsonl`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(text) {
+  const lines = text
+    .trim()
+    .split("\n")
+    .map((l) => JSON.parse(l));
+  const importVersion = lines.find((l) => l.type === "meta")?.version ?? 0;
+
+  let data = {};
+  for (const k of DATA_KEYS) data[k] = lines.find((l) => l.type === k)?.data ?? null;
+
+  if (importVersion < DATA_VERSION) data = runMigrations(data, importVersion);
+  return data;
+}
+
 // ─── TIME HELPERS ─────────────────────────────────────────────────────────────
 const toMins = (t) => {
   if (!t) return 0;
@@ -38,6 +113,11 @@ const nowStr = () => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 const todayKey = () => new Date().toISOString().slice(0, 10);
+const yesterdayKey = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
 const minsUntil = (target, now) => {
   let d = toMins(target) - toMins(now);
   if (d < 0) d += 1440;
@@ -446,19 +526,21 @@ const S = { background: "var(--bg)", minHeight: "100vh", color: "var(--text)", f
 // APP
 // ════════════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [tab, setTab] = useState("home");
-  const [plan, setPlan] = useState(() => store.get("slp_plan") || DEFAULT_PLAN);
-  const [logs, setLogs] = useState(() => {
-    const raw = store.get("slp_logs") || {};
-    const pruned = pruneLogs(raw);
-    if (Object.keys(pruned).length !== Object.keys(raw).length) store.set("slp_logs", pruned);
-    return pruned;
+  const [initResult] = useState(() => {
+    const result = loadAndMigrateData();
+    const logs = pruneLogs(result.data.logs || {});
+    if (Object.keys(logs).length !== Object.keys(result.data.logs || {}).length) store.set("slp_logs", logs);
+    return { ...result, data: { ...result.data, logs } };
   });
-  const [manual, setManual] = useState(() => store.get("slp_manual") || {});
+  const [migrationError] = useState(initResult.ok ? null : initResult.error);
+  const [tab, setTab] = useState("home");
+  const [plan, setPlan] = useState(initResult.data.plan || DEFAULT_PLAN);
+  const [logs, setLogs] = useState(initResult.data.logs || {});
+  const [manual, setManual] = useState(initResult.data.manual || {});
   const [now, setNow] = useState(nowStr());
-  const [modal, setModal] = useState(null); // { type, time, extra }
+  const [modal, setModal] = useState(null);
   const [notifGranted, setNotifGranted] = useState(false);
-  const [prefs, setPrefs] = useState(() => store.get("slp_prefs") || DEFAULT_PREFS);
+  const [prefs, setPrefs] = useState(initResult.data.prefs || DEFAULT_PREFS);
   const notifTimers = useRef([]);
 
   const today = todayKey();
@@ -513,14 +595,16 @@ export default function App() {
     store.set("slp_logs", l);
   }
 
-  function addEvent(type, time, extra = {}) {
+  function addEvent(type, time, extra = {}, dayKey = today) {
     const ev = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type, time, ...extra };
-    const upd = { ...logs, [today]: [...todayEvents, ev].sort((a, b) => a.time.localeCompare(b.time)) };
+    const dayEvents = logs[dayKey] || [];
+    const upd = { ...logs, [dayKey]: [...dayEvents, ev].sort((a, b) => a.time.localeCompare(b.time)) };
     setLogs(upd);
     saveLogs(upd);
   }
-  function removeEvent(id) {
-    const upd = { ...logs, [today]: todayEvents.filter((e) => e.id !== id) };
+  function removeEvent(id, dayKey = today) {
+    const dayEvents = logs[dayKey] || [];
+    const upd = { ...logs, [dayKey]: dayEvents.filter((e) => e.id !== id) };
     setLogs(upd);
     saveLogs(upd);
   }
@@ -539,18 +623,49 @@ export default function App() {
     setPrefs(np);
     store.set("slp_prefs", np);
   }
+  function handleImport(text) {
+    try {
+      const data = importData(text);
+      const setters = { plan: setPlan, logs: setLogs, manual: setManual, prefs: setPrefs };
+      for (const k of DATA_KEYS) {
+        if (data[k]) setters[k](data[k]);
+      }
+      writeDataBag(data);
+      store.set("slp_version", DATA_VERSION);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+
+  function doExport() {
+    exportDataFromState(plan, logs, manual, prefs);
+  }
 
   const sched = useMemo(() => deriveSchedule(plan), [plan]);
   const compliance = useMemo(() => computeCompliance(plan, todayEvents, manual), [plan, todayEvents, manual]);
   const { R, passed, failed, pending } = compliance;
   const { items: statusItems, alerts } = useMemo(() => getCurrentStatus(plan, now), [plan, now]);
 
-  function openLog(type) {
-    setModal({ type, time: nowStr(), extra: type === "exercise" ? { intensity: "moderate", duration: 60 } : type === "nap" ? { duration: 20 } : {} });
+  function openLog(type, dayKey) {
+    const targetDay = dayKey || today;
+    const hour = new Date().getHours();
+    // If logging sleep/wind-down after midnight but before 5 AM, default to yesterday
+    const autoYesterday = !dayKey && (type === "sleep" || type === "wind_down") && hour < 5;
+    setModal({
+      type,
+      time: nowStr(),
+      extra: type === "exercise" ? { intensity: "moderate", duration: 60 } : type === "nap" ? { duration: 20 } : {},
+      targetDay: autoYesterday ? yesterdayKey() : targetDay,
+    });
   }
   function confirmLog() {
     if (!modal) return;
-    addEvent(modal.type, modal.time, modal.extra);
+    const extra = { ...modal.extra };
+    if (extra.duration === "" || extra.duration == null) {
+      extra.duration = modal.type === "nap" ? 20 : 60;
+    }
+    addEvent(modal.type, modal.time, extra, modal.targetDay);
     setModal(null);
   }
 
@@ -565,6 +680,27 @@ export default function App() {
 
   return (
     <div style={S}>
+      {migrationError && (
+        <div style={{ background: "#EF444422", border: "1px solid #EF444466", borderRadius: 12, padding: "16px", margin: "12px 16px", fontSize: "0.8125rem", color: "#F87171" }}>
+          <div style={{ fontWeight: "bold", marginBottom: 6 }}>{migrationError}</div>
+          <div style={{ color: "var(--text-secondary)", marginBottom: 10, fontSize: "0.75rem" }}>Download your data before updating to avoid data loss.</div>
+          <button
+            onClick={doExport}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: "1px solid #F87171",
+              background: "transparent",
+              color: "#F87171",
+              cursor: "pointer",
+              fontFamily: "Georgia, serif",
+              fontSize: "0.75rem",
+            }}
+          >
+            Download backup
+          </button>
+        </div>
+      )}
       {tab === "home" && (
         <HomeTab
           plan={plan}
@@ -579,11 +715,21 @@ export default function App() {
           requestNotifs={requestNotifs}
         />
       )}
-      {tab === "log" && <LogTab todayEvents={todayEvents} openLog={openLog} removeEvent={removeEvent} />}
+      {tab === "log" && <LogTab logs={logs} today={today} openLog={openLog} removeEvent={removeEvent} />}
       {tab === "progress" && <ProgressTab logs={logs} plan={plan} today={today} />}
       {tab === "score" && <ScoreTab R={R} passed={passed} failed={failed} pending={pending} manual={manual} toggleManual={toggleManual} />}
       {tab === "plan" && (
-        <PlanTab plan={plan} updatePlan={updatePlan} sched={sched} notifGranted={notifGranted} scheduleNotifications={scheduleNotifications} prefs={prefs} updatePrefs={updatePrefs} />
+        <PlanTab
+          plan={plan}
+          updatePlan={updatePlan}
+          sched={sched}
+          notifGranted={notifGranted}
+          scheduleNotifications={scheduleNotifications}
+          prefs={prefs}
+          updatePrefs={updatePrefs}
+          onImport={handleImport}
+          onExport={doExport}
+        />
       )}
       {tab === "rules" && <RulesTab />}
 
@@ -602,6 +748,30 @@ export default function App() {
                 ×
               </button>
             </div>
+            {modal.targetDay && modal.targetDay !== today && (
+              <div
+                style={{
+                  background: "#F59E0B22",
+                  border: "1px solid #F59E0B44",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  marginBottom: 12,
+                  fontSize: "0.75rem",
+                  color: "#F59E0B",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>Logging to yesterday ({new Date(`${modal.targetDay}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })})</span>
+                <button
+                  onClick={() => setModal((m) => ({ ...m, targetDay: today }))}
+                  style={{ background: "none", border: "none", color: "#F59E0B", cursor: "pointer", fontFamily: "Georgia, serif", fontSize: "0.75rem", textDecoration: "underline" }}
+                >
+                  Use today
+                </button>
+              </div>
+            )}
             <label style={{ display: "block", fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", marginBottom: 6 }}>TIME</label>
             <input
               type="time"
@@ -650,8 +820,8 @@ export default function App() {
                   type="number"
                   min="10"
                   max="180"
-                  value={modal.extra.duration || 60}
-                  onChange={(e) => setModal((m) => ({ ...m, extra: { ...m.extra, duration: Number(e.target.value) } }))}
+                  value={modal.extra.duration ?? ""}
+                  onChange={(e) => setModal((m) => ({ ...m, extra: { ...m.extra, duration: e.target.value === "" ? "" : Number(e.target.value) } }))}
                   style={{
                     width: "100%",
                     background: "var(--bg-input)",
@@ -674,8 +844,8 @@ export default function App() {
                   type="number"
                   min="5"
                   max="120"
-                  value={modal.extra.duration || 20}
-                  onChange={(e) => setModal((m) => ({ ...m, extra: { ...m.extra, duration: Number(e.target.value) } }))}
+                  value={modal.extra.duration ?? ""}
+                  onChange={(e) => setModal((m) => ({ ...m, extra: { ...m.extra, duration: e.target.value === "" ? "" : Number(e.target.value) } }))}
                   style={{
                     width: "100%",
                     background: "var(--bg-input)",
@@ -885,15 +1055,52 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
 // ════════════════════════════════════════════════════════════════════════════
 // LOG
 // ════════════════════════════════════════════════════════════════════════════
-function LogTab({ todayEvents, openLog, removeEvent }) {
+function LogTab({ logs, today, openLog, removeEvent }) {
+  const yesterday = yesterdayKey();
+  const [selectedDay, setSelectedDay] = useState(today);
+  const events = logs[selectedDay] || [];
+  const isToday = selectedDay === today;
+  const displayDate = new Date(`${selectedDay}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  function openLogForDay(type) {
+    openLog(type, selectedDay);
+  }
+
   return (
     <div style={{ padding: "20px 16px" }}>
-      <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: "normal" }}>Today's Log</h2>
-      <p style={{ color: "var(--text-subtle)", fontSize: "0.75rem", margin: "0 0 16px" }}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
-      {todayEvents.length === 0 ? (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
+        <div>
+          <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: "normal" }}>{isToday ? "Today's Log" : "Yesterday's Log"}</h2>
+          <p style={{ color: "var(--text-subtle)", fontSize: "0.75rem", margin: 0 }}>{displayDate}</p>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[
+            { key: yesterday, label: "Yesterday" },
+            { key: today, label: "Today" },
+          ].map((d) => (
+            <button
+              key={d.key}
+              onClick={() => setSelectedDay(d.key)}
+              style={{
+                padding: "5px 10px",
+                borderRadius: 8,
+                border: `1px solid ${selectedDay === d.key ? "#6EE7B7" : "var(--border)"}`,
+                background: selectedDay === d.key ? "#6EE7B722" : "transparent",
+                color: selectedDay === d.key ? "#6EE7B7" : "var(--text-muted)",
+                cursor: "pointer",
+                fontFamily: "Georgia, serif",
+                fontSize: "0.75rem",
+              }}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {events.length === 0 ? (
         <p style={{ color: "var(--text-dim)", textAlign: "center", marginTop: 40, fontStyle: "italic" }}>Nothing logged yet.</p>
       ) : (
-        todayEvents.map((ev) => {
+        events.map((ev) => {
           const info = EV[ev.type] || {};
           return (
             <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--border)" }}>
@@ -923,7 +1130,10 @@ function LogTab({ todayEvents, openLog, removeEvent }) {
                 {ev.duration && !ev.intensity && <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)" }}>{ev.duration} min</div>}
               </div>
               <span style={{ fontSize: "0.875rem", color: info.color || "var(--text-secondary)", fontWeight: "bold" }}>{fmt12(ev.time)}</span>
-              <button onClick={() => removeEvent(ev.id)} style={{ background: "none", border: "none", color: "var(--border-input)", cursor: "pointer", fontSize: "1.25rem", padding: "0 2px", lineHeight: 1 }}>
+              <button
+                onClick={() => removeEvent(ev.id, selectedDay)}
+                style={{ background: "none", border: "none", color: "var(--border-input)", cursor: "pointer", fontSize: "1.25rem", padding: "0 2px", lineHeight: 1 }}
+              >
                 ×
               </button>
             </div>
@@ -937,7 +1147,7 @@ function LogTab({ todayEvents, openLog, removeEvent }) {
         {Object.entries(EV).map(([type, info]) => (
           <button
             key={type}
-            onClick={() => openLog(type)}
+            onClick={() => openLogForDay(type)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1307,7 +1517,22 @@ function ScoreTab({ R, passed, failed, pending, manual, toggleManual }) {
 // ════════════════════════════════════════════════════════════════════════════
 // PLAN
 // ════════════════════════════════════════════════════════════════════════════
-function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications, prefs, updatePrefs }) {
+function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications, prefs, updatePrefs, onImport, onExport }) {
+  const [importStatus, setImportStatus] = useState(null); // { ok, message }
+  const fileInputRef = useRef(null);
+
+  function handleFileImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = onImport(reader.result);
+      setImportStatus(result.ok ? { ok: true, message: "Data imported successfully." } : { ok: false, message: `Import failed: ${result.error}` });
+      setTimeout(() => setImportStatus(null), 4000);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
   const CUTOFFS = [
     { label: "Last caffeine", time: sched.caffeineCutoff, icon: "☕", rule: "Rule 19 — 10 hrs before bed" },
     { label: "Last alcohol", time: sched.alcoholCutoff, icon: "🍷", rule: "Rule 20 — 3 hrs before bed" },
@@ -1450,6 +1675,52 @@ function PlanTab({ plan, updatePlan, sched, notifGranted, scheduleNotifications,
           <div style={{ fontSize: "1rem", fontWeight: "bold", color: "#6EE7B7", flexShrink: 0 }}>{fmt12(c.time)}</div>
         </div>
       ))}
+
+      <div style={{ marginTop: 24 }}>
+        <Sec label="Your data" />
+        <div style={{ background: "var(--bg-card)", borderRadius: 14, padding: "16px", border: "1px solid var(--border)" }}>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
+            All data is stored locally on this device. Export to back up or transfer to another device.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={onExport}
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: 10,
+                border: "1px solid #6EE7B744",
+                background: "transparent",
+                color: "#6EE7B7",
+                cursor: "pointer",
+                fontFamily: "Georgia, serif",
+                fontSize: "0.8125rem",
+              }}
+            >
+              Export data
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: 10,
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+                fontFamily: "Georgia, serif",
+                fontSize: "0.8125rem",
+              }}
+            >
+              Import data
+            </button>
+            <input ref={fileInputRef} type="file" accept=".jsonl,.json" onChange={handleFileImport} style={{ display: "none" }} />
+          </div>
+          {importStatus && <div style={{ marginTop: 10, fontSize: "0.75rem", color: importStatus.ok ? "#6EE7B7" : "#F87171" }}>{importStatus.message}</div>}
+          <div style={{ marginTop: 10, fontSize: "0.625rem", color: "var(--text-dim)" }}>Data format v{DATA_VERSION}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1519,4 +1790,22 @@ function Sec({ label }) {
   return <div style={{ fontSize: "0.6875rem", color: "var(--text-subtle)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>{label}</div>;
 }
 
-export { AUTO_RULE_IDS, computeAutoCompliance, computeCompliance, deriveSchedule, FAIL, fmt12, MANUAL_RULE_IDS, minsUntil, PASS, PENDING, pruneLogs, RULES, toMins, toTime };
+export {
+  AUTO_RULE_IDS,
+  computeAutoCompliance,
+  computeCompliance,
+  DATA_VERSION,
+  deriveSchedule,
+  exportDataFromState,
+  FAIL,
+  fmt12,
+  importData,
+  MANUAL_RULE_IDS,
+  minsUntil,
+  PASS,
+  PENDING,
+  pruneLogs,
+  RULES,
+  toMins,
+  toTime,
+};

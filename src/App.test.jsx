@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { AUTO_RULE_IDS, computeAutoCompliance, computeCompliance, deriveSchedule, FAIL, fmt12, MANUAL_RULE_IDS, minsUntil, PASS, PENDING, pruneLogs, RULES, toMins, toTime } from "./App.jsx";
+import {
+  AUTO_RULE_IDS,
+  computeAutoCompliance,
+  computeCompliance,
+  DATA_VERSION,
+  deriveSchedule,
+  FAIL,
+  fmt12,
+  importData,
+  MANUAL_RULE_IDS,
+  minsUntil,
+  PASS,
+  PENDING,
+  pruneLogs,
+  RULES,
+  toMins,
+  toTime,
+} from "./App.jsx";
 
 describe("toMins", () => {
   it("converts HH:MM to minutes since midnight", () => {
@@ -171,6 +188,38 @@ describe("pruneLogs", () => {
     const pruned = pruneLogs(logs);
     expect(pruned[oldKey]).toBeUndefined();
     expect(pruned[today]).toBeDefined();
+  });
+});
+
+describe("importData", () => {
+  it("parses JSONL and returns data", () => {
+    const lines = [
+      JSON.stringify({ type: "meta", version: DATA_VERSION, exportedAt: "2026-04-05T00:00:00Z" }),
+      JSON.stringify({ type: "plan", data: { wakeTime: "07:00", bedTime: "23:00" } }),
+      JSON.stringify({ type: "logs", data: { "2026-04-05": [{ type: "wake", time: "07:00" }] } }),
+      JSON.stringify({ type: "manual", data: { r4: true } }),
+      JSON.stringify({ type: "prefs", data: { theme: "light", fontSize: "large" } }),
+    ].join("\n");
+    const result = importData(lines);
+    expect(result.plan.wakeTime).toBe("07:00");
+    expect(result.logs["2026-04-05"]).toHaveLength(1);
+    expect(result.manual.r4).toBe(true);
+    expect(result.prefs.theme).toBe("light");
+  });
+
+  it("handles missing sections gracefully", () => {
+    const lines = [JSON.stringify({ type: "meta", version: DATA_VERSION }), JSON.stringify({ type: "plan", data: { wakeTime: "06:00", bedTime: "22:00" } })].join("\n");
+    const result = importData(lines);
+    expect(result.plan.wakeTime).toBe("06:00");
+    expect(result.logs).toBeNull();
+    expect(result.manual).toBeNull();
+    expect(result.prefs).toBeNull();
+  });
+
+  it("handles files without meta (legacy format)", () => {
+    const lines = [JSON.stringify({ type: "plan", data: { wakeTime: "06:30", bedTime: "22:30" } }), JSON.stringify({ type: "logs", data: {} })].join("\n");
+    const result = importData(lines);
+    expect(result.plan.wakeTime).toBe("06:30");
   });
 });
 

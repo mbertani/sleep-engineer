@@ -74,7 +74,7 @@ function exportDataFromState(plan, logs, manual, prefs) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `sleep-engineer-backup-${new Date().toISOString().slice(0, 10)}.jsonl`;
+  a.download = `sleep-engineer-backup-${localDateKey()}.jsonl`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -113,22 +113,20 @@ const nowStr = () => {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const localDateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayKey = () => localDateKey();
 const yesterdayKey = () => {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 };
 const minsUntil = (target, now) => {
   let d = toMins(target) - toMins(now);
   if (d < 0) d += 1440;
   return d;
 };
-const dayName = (key) => new Date(`${key}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" });
-const dateLabel = (key) => {
-  const [, m, d] = key.split("-");
-  return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
-};
+const dayName = (key) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: "short" });
+const dateLabel = (key) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { month: "numeric", day: "numeric" });
 
 // ─── EVENT TYPES ──────────────────────────────────────────────────────────────
 const EV = {
@@ -361,9 +359,9 @@ const RULES = [
     num: 27,
     cat: "Psychological",
     auto: true,
-    title: "Bed is for sleep only",
-    short: "Ruthlessly protect the bed-sleep association. No phone, no TV, no worrying in bed.",
-    tip: "Get out of bed if not asleep in ~20 min. Return only when genuinely sleepy.",
+    title: "Screens off 1 hour before bed",
+    short: "Put all screens away at least 60 minutes before your target bedtime. Tracked from your Screens off log entry.",
+    tip: "Set a phone alarm for your screens cutoff time. Use the wind-down period for reading, stretching, or journaling.",
   },
   {
     num: 28,
@@ -412,7 +410,7 @@ const LOG_RETENTION_DAYS = 90;
 function pruneLogs(logs) {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - LOG_RETENTION_DAYS);
-  const cutoffKey = cutoff.toISOString().slice(0, 10);
+  const cutoffKey = localDateKey(cutoff);
   const pruned = {};
   for (const key in logs) {
     if (key >= cutoffKey) pruned[key] = logs[key];
@@ -523,13 +521,13 @@ function computeSocialJetLag(logs) {
   for (let i = 0; i < 14; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     const events = logs[key] || [];
     const wakeEv = events.find((e) => e.type === "wake");
     if (!wakeEv) continue;
     const prevD = new Date(d);
     prevD.setDate(prevD.getDate() - 1);
-    const prevEvents = logs[prevD.toISOString().slice(0, 10)] || [];
+    const prevEvents = logs[localDateKey(prevD)] || [];
     const sleepEv = findSleepEvent(prevEvents, events);
     if (!sleepEv) continue;
     const mid = sleepMidpoint(sleepEv.time, wakeEv.time);
@@ -599,7 +597,7 @@ export default function App() {
   const [prefs, setPrefs] = useState(initResult.data.prefs || DEFAULT_PREFS);
   const notifTimers = useRef([]);
 
-  const today = todayKey();
+  const today = useMemo(() => todayKey(), [now]);
   const todayEvents = logs[today] || [];
 
   useEffect(() => {
@@ -707,14 +705,11 @@ export default function App() {
 
   function openLog(type, dayKey) {
     const targetDay = dayKey || today;
-    const hour = new Date().getHours();
-    // If logging sleep/wind-down after midnight but before 5 AM, default to yesterday
-    const autoYesterday = !dayKey && (type === "sleep" || type === "wind_down") && hour < 5;
     setModal({
       type,
       time: nowStr(),
       extra: type === "exercise" ? { intensity: "moderate", duration: 60 } : type === "nap" ? { duration: 20 } : {},
-      targetDay: autoYesterday ? yesterdayKey() : targetDay,
+      targetDay,
     });
   }
   function confirmLog() {
@@ -821,7 +816,7 @@ export default function App() {
                   alignItems: "center",
                 }}
               >
-                <span>Logging to yesterday ({new Date(`${modal.targetDay}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })})</span>
+                <span>Logging to {new Date(`${modal.targetDay}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
                 <button
                   onClick={() => setModal((m) => ({ ...m, targetDay: today }))}
                   style={{ background: "none", border: "none", color: "#F59E0B", cursor: "pointer", fontFamily: "Georgia, serif", fontSize: "0.75rem", textDecoration: "underline" }}
@@ -1114,28 +1109,35 @@ function HomeTab({ plan, sched, now, statusItems, alerts, todayEvents, openLog, 
 // LOG
 // ════════════════════════════════════════════════════════════════════════════
 function LogTab({ logs, today, openLog, removeEvent }) {
-  const yesterday = yesterdayKey();
   const [selectedDay, setSelectedDay] = useState(today);
   const events = logs[selectedDay] || [];
-  const isToday = selectedDay === today;
-  const displayDate = new Date(`${selectedDay}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-  function openLogForDay(type) {
-    openLog(type, selectedDay);
-  }
+  const sevenDays = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        const key = localDateKey(d);
+        return {
+          key,
+          label: key === today ? "Today" : dayName(key),
+          date: dateLabel(key),
+          longLabel: new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
+        };
+      }),
+    [today],
+  );
+  const displayDate = sevenDays.find((d) => d.key === selectedDay)?.longLabel || "";
 
   return (
     <div style={{ padding: "20px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 12 }}>
-        <div>
-          <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: "normal" }}>{isToday ? "Today's Log" : "Yesterday's Log"}</h2>
-          <p style={{ color: "var(--text-subtle)", fontSize: "0.75rem", margin: 0 }}>{displayDate}</p>
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {[
-            { key: yesterday, label: "Yesterday" },
-            { key: today, label: "Today" },
-          ].map((d) => (
+      <div style={{ marginBottom: 4 }}>
+        <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: "normal" }}>{selectedDay === today ? "Today's Log" : `${dayName(selectedDay)}'s Log`}</h2>
+        <p style={{ color: "var(--text-subtle)", fontSize: "0.75rem", margin: 0 }}>{displayDate}</p>
+      </div>
+      <div style={{ overflowX: "auto", marginBottom: 12, paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+        <div style={{ display: "flex", gap: 6, width: "max-content" }}>
+          {sevenDays.map((d) => (
             <button
               key={d.key}
               onClick={() => setSelectedDay(d.key)}
@@ -1148,9 +1150,13 @@ function LogTab({ logs, today, openLog, removeEvent }) {
                 cursor: "pointer",
                 fontFamily: "Georgia, serif",
                 fontSize: "0.75rem",
+                flexShrink: 0,
+                lineHeight: 1.3,
+                textAlign: "center",
               }}
             >
-              {d.label}
+              <div>{d.label}</div>
+              <div style={{ fontSize: "0.5625rem", opacity: 0.7 }}>{d.date}</div>
             </button>
           ))}
         </div>
@@ -1205,7 +1211,7 @@ function LogTab({ logs, today, openLog, removeEvent }) {
         {Object.entries(EV).map(([type, info]) => (
           <button
             key={type}
-            onClick={() => openLogForDay(type)}
+            onClick={() => openLog(type, selectedDay)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -1239,11 +1245,11 @@ function ProgressTab({ logs, plan, today, jetLag }) {
       Array.from({ length: range }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (range - 1 - i));
-        const key = d.toISOString().slice(0, 10);
+        const key = localDateKey(d);
         const events = logs[key] || [];
         const prevD = new Date(d);
         prevD.setDate(prevD.getDate() - 1);
-        const prevEvents = logs[prevD.toISOString().slice(0, 10)] || [];
+        const prevEvents = logs[localDateKey(prevD)] || [];
         const autoCompliance = computeAutoCompliance(plan, events, prevEvents);
         const { passed, failed, R } = autoCompliance;
         const pct = Math.round((passed / Object.keys(R).length) * 100);

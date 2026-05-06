@@ -603,7 +603,9 @@ export default function App() {
   useEffect(() => {
     if (typeof Notification !== "undefined" && Notification.permission === "granted") setNotifGranted(true);
     const tick = setInterval(() => setNow(nowStr()), 30_000);
-    return () => clearInterval(tick);
+    const onVisible = () => { if (document.visibilityState === "visible") setNow(nowStr()); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(tick); document.removeEventListener("visibilitychange", onVisible); };
   }, []);
 
   useEffect(() => {
